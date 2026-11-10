@@ -1,3 +1,10 @@
+//*********************************************************
+// Camera.h
+// First-person style camera exposed to XAML/C# as a WinRT type.
+// Maintains an orthonormal basis (Right/Up/Look) plus a
+// left-handed perspective projection.
+//*********************************************************
+
 #pragma once
 #include <WindowsNumerics.h>
 #include <pch.h>
@@ -9,8 +16,6 @@ namespace DirectXModel
 	public ref class Camera sealed
 	{
 	public:
-		
-		//void Update();
 		void SetPosition(float x, float y, float z);
 		// Get frustum properties.
 		property float NearZ {float get() { return mNearZ; } }
@@ -34,9 +39,12 @@ namespace DirectXModel
 		void Pitch(float angle);
 		void RotateY(float angle);
 
+		// Set frustum: vertical FOV (radians), aspect ratio, display orientation, near/far planes.
 		void SetLens(float fovY, float aspect, float4x4 orientation, float zn, float zf);
+		// Define camera space from a position, a target point and a world up vector.
 		void LookAt(const float3& pos, const float3& target, const float3& up);
 
+	// Native-only API used by the renderer (not projected to WinRT).
 	internal:
 		Camera();
 		// Get/Set world camera position.
@@ -53,19 +61,15 @@ namespace DirectXModel
 		XMVECTOR GetLookXM()const;
 		XMFLOAT3 GetLook()const;
 
-		// Set frustum.
-
 		void SetOrientationMatrix(XMFLOAT4X4 orientation);
 
 		// Define camera space via LookAt parameters.
 		void LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp);
 
-
 		// Get View/Proj matrices.
 		XMMATRIX View()const;
 		XMMATRIX Proj()const;
 		XMMATRIX ViewProj()const;
-
 
 		// After modifying camera position/orientation, call to rebuild the view matrix.
 		void UpdateViewMatrix();

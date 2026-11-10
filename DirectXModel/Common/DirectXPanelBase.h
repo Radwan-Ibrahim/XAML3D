@@ -11,6 +11,8 @@
 namespace DirectXModel
 {
     // Base class for a SwapChainPanel-based DirectX rendering surface to be used in XAML apps.
+    // Owns the D3D11 device/context and swap chain, and handles resize, DPI scale, suspend and device-lost.
+    // Derived classes override CreateDeviceResources / CreateSizeDependentResources / Render.
     [Windows::Foundation::Metadata::WebHostHidden]
     public ref class DirectXPanelBase : public Windows::UI::Xaml::Controls::SwapChainPanel
     {

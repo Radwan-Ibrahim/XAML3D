@@ -18,7 +18,7 @@ using Windows.UI.Xaml.Navigation;
 namespace TestApp
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// Demo page hosting several DXModel controls; dragging a model rotates and moves it.
     /// </summary>
     public sealed partial class MainPage : Page
     {
@@ -33,10 +33,13 @@ namespace TestApp
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
-
         }
+
+        // Accumulated drag offset, shared by all models on the page.
         double y = 0;
         double x = 0;
+
+        // Uses the drag delta both as rotation (degrees) for the 3D model and as a 2D offset for the panel.
         private void OnManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             y += e.Delta.Translation.Y;
@@ -51,11 +54,10 @@ namespace TestApp
             Frame.GoBack();
         }
 
+        // May be raised off the UI thread; use Dispatcher before touching UI elements.
         private void OnModelLoaded(object sender, bool e)
         {
 
         }
-
-       
     }
 }

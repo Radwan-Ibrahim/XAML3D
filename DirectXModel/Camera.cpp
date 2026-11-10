@@ -1,3 +1,8 @@
+//*********************************************************
+// Camera.cpp
+// Camera basis, view and projection matrix math (DirectXMath).
+//*********************************************************
+
 #include "pch.h"
 #include "Camera.h"
 #include "VSD3DStarter.h"
@@ -8,12 +13,12 @@ using namespace DirectX;
 using namespace DirectXModel;
 using namespace VSD3DStarter;
 
+// Defaults: at origin looking down +Z, 45 degree FOV, square aspect.
 Camera::Camera()
 	: mPosition(0.0f, 0.0f, 0.0f),
 	mRight(1.0f, 0.0f, 0.0f),
 	mUp(0.0f, 1.0f, 0.0f),
 	mLook(0.0f, 0.0f, 1.0f)
-
 {
 	mOrientation = float4x4(
 		1.0f, 0.0f, 0.0f, 0.0f,
@@ -95,7 +100,6 @@ void Camera::SetLens(float fovY, float aspect, float4x4 orientation, float zn, f
 	XMMATRIX P = XMMatrixPerspectiveFovLH(mFovY, mAspect, mNearZ, mFarZ);
 	XMStoreFloat4x4(&mProj, P*orientationMatrix);
 }
-
 
 void Camera::LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp)
 {
@@ -220,22 +224,3 @@ void Camera::UpdateViewMatrix()
 	mView(2, 3) = 0.0f;
 	mView(3, 3) = 1.0f;
 }
-
-
-//void Camera::Update()
-//{
-//	auto outputSize = Graphics::Current->GetDeviceResources()->GetOutputSize();
-//	UINT backBufferWidth = std::max<UINT>(outputSize.right - outputSize.left, 1);
-//	UINT backBufferHeight = std::max<UINT>(outputSize.bottom - outputSize.top, 1);
-//	float aspectRatio = (float)backBufferWidth / (float)backBufferHeight;
-//	float fovAngleY = 70.0f * XM_PI / 180.0f;
-//
-//	if (aspectRatio < 1.0f)
-//	{
-//		// Portrait or snap view
-//		fovAngleY = 120.0f * XM_PI / 180.0f;
-//	}
-//
-//	SetLens(fovAngleY, aspectRatio, Graphics::Current->GetDeviceResources()->GetOrientationTransform3D(), 1.00f, 1000.0f);
-//	UpdateViewMatrix();
-//}

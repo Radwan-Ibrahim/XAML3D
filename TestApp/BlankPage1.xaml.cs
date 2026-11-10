@@ -18,7 +18,7 @@ using Windows.UI.Xaml.Navigation;
 namespace TestApp
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// Landing page; its button navigates to MainPage with the 3D models.
     /// </summary>
     public sealed partial class BlankPage1 : Page
     {

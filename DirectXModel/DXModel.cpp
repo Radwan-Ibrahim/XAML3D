@@ -1,4 +1,9 @@
-﻿#pragma once
+﻿//*********************************************************
+// DXModel.cpp
+// Implementation of the DXModel XAML control: model loading,
+// render loop, and Direct3D resource creation.
+//*********************************************************
+
 #include "pch.h"
 #include "DXModel.h"
 #include "Common\DirectXHelper.h"
@@ -29,6 +34,7 @@ using namespace DirectXModel;
 using namespace DX;
 
 
+// Sets up a default camera looking at the origin from z = -4 and creates all GPU resources.
 DXModel::DXModel()
 {
 	critical_section::scoped_lock lock(m_criticalSection);
@@ -39,15 +45,13 @@ DXModel::DXModel()
 
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
-	CreateSizeDependentResources();	
-	
+	CreateSizeDependentResources();
 }
 
 DXModel::~DXModel()
 {
 	m_renderLoopWorker->Cancel();
 
-	m_renderLoopWorker->Cancel();
 	for (auto m : m_meshModels)
 		delete m;
 	m_meshModels.clear();
@@ -71,6 +75,7 @@ DirectXModel::Camera^ DXModel::Camera::get()
 	return m_Camera;
 }
 
+// Kicks off asynchronous loading; ModelLoaded fires when done and Render() starts drawing.
 void DXModel::ModelName::set(Platform::String^ value)
 {
 	m_ModelName = value;
@@ -84,7 +89,6 @@ void DXModel::ModelName::set(Platform::String^ value)
 	StartRenderLoop();
 }
 
-
 void DXModel::OnUnloaded(Platform::Object ^sender, Windows::UI::Xaml::RoutedEventArgs ^e)
 {
 	StopRenderLoop();
@@ -97,7 +101,6 @@ concurrency::task<void> DXModel::LoadAsync(Graphics& graphics,
 	const std::wstring& shaderPathLocation,
 	const std::wstring& texturePathLocation
 )
-
 {
 	isanimated = IsAnimated;
 
@@ -105,7 +108,7 @@ concurrency::task<void> DXModel::LoadAsync(Graphics& graphics,
 
 	if (isanimated)
 	{
-
+		// Attach an AnimationState to every mesh that has bones, then initialize the skinning renderer.
 		return task.then([this]()
 		{
 			for (Mesh* m : m_meshModels)
@@ -127,8 +130,6 @@ concurrency::task<void> DXModel::LoadAsync(Graphics& graphics,
 	{
 		return task;
 	}
-
-
 }
 
 void DXModel::UpdateAnimation(float TimeDelta)
@@ -185,8 +186,8 @@ void DXModel::Render()
 	// Set render targets to the screen.
 	ID3D11RenderTargetView *const targets[1] = { m_renderTargetView.Get() };
 	m_d3dContext->OMSetRenderTargets(1, targets, m_depthStencilView.Get());
-	XMVECTORF32 Transparent = { 0.000000000f, 1.000000000f, 1.000000000f, 1.000000000f };
-	// Clear the back buffer and depth stencil view.
+
+	// Clear to transparent so the XAML content behind the panel shows through.
 	m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), DirectX::Colors::Transparent);
 	m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -194,10 +195,8 @@ void DXModel::Render()
 
 	if (isanimated)
 	{
-
 		for (UINT i = 0; i < m_meshModels.size(); i++)
 		{
-
 			if (m_meshModels[i]->Tag != nullptr)
 			{
 				// Mesh has animation - render skinned mesh.
@@ -214,15 +213,15 @@ void DXModel::Render()
 	{
 		for (UINT i = 0; i < m_meshModels.size(); i++)
 		{
-			// Mesh does not have animation - render as usual.
 			m_meshModels[i]->Render(m_graphics, m_Camera, m_TransformMatrix);
-
 		}
 	}
 
 	Present();
 }
 
+// Creates the device (base class), grabs the primary output for vblank sync,
+// initializes the VSD3DStarter graphics wrapper and sets a no-cull rasterizer state.
 void DXModel::CreateDeviceResources()
 {
 	DirectXPanelBase::CreateDeviceResources();
@@ -243,7 +242,6 @@ void DXModel::CreateDeviceResources()
 
 	m_graphics.Initialize(m_d3dDevice.Get(), m_d3dContext.Get(), m_d3dFeatureLevel);
 
-
 	CD3D11_RASTERIZER_DESC d3dRas(D3D11_DEFAULT);
 	d3dRas.CullMode = D3D11_CULL_NONE;
 	d3dRas.MultisampleEnable = true;
@@ -252,9 +250,9 @@ void DXModel::CreateDeviceResources()
 	ComPtr<ID3D11RasterizerState> p3d3RasState;
 	m_d3dDevice->CreateRasterizerState(&d3dRas, &p3d3RasState);
 	m_d3dContext->RSSetState(p3d3RasState.Get());
-
 }
 
+// Rebuilds the render target, depth buffer, viewport, projection and lighting whenever the panel size changes.
 void DXModel::CreateSizeDependentResources()
 {
 	m_renderTargetView = nullptr;
@@ -315,10 +313,10 @@ void DXModel::CreateSizeDependentResources()
 	m_miscConstants.ViewportWidth = m_renderTargetWidth;
 	m_graphics.UpdateMiscConstants(m_miscConstants);
 
-
+	// Projection: 70 degree vertical FOV, identity orientation (no display rotation).
 	float aspectRatio = m_renderTargetWidth / m_renderTargetHeight;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
-	
+
 	float4x4 orientation =
 		float4x4(
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -327,12 +325,11 @@ void DXModel::CreateSizeDependentResources()
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-
 	m_Camera->SetLens(fovAngleY, aspectRatio, orientation, 1.00f, 1000.0f);
 
 	m_Camera->UpdateViewMatrix();
 
-	// Setup lightinUpdateViewMatrix();g for our scene.
+	// Single directional light with ambient term.
 	static const XMVECTORF32 s_vPos = { 5.0f, 5.0f, -2.5f, 0.f };
 
 	XMFLOAT4 dir;
